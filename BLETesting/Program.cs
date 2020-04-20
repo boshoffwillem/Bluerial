@@ -7,7 +7,8 @@ namespace BLETesting
     {
         static void Main(string[] args)
         {
-            var watcher = new BLEAdvertisementWatcher();
+            var watcher = new BLEAdvertisementWatcher(new GattServiceIds());
+            BleToSerialPiper bleToSerialPiper = new BleToSerialPiper(null, null);            
 
             watcher.StartedListening += () =>
             {
@@ -25,12 +26,18 @@ namespace BLETesting
             {
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"New device: {device}");
+
+                if (device.Address.ToString("X").Contains("80"))
+                    bleToSerialPiper.WriteSerialData(device.Data);
             };
 
             watcher.DeviceNameChanged += (device) =>
             {
                 Console.ForegroundColor = ConsoleColor.Blue;
                 Console.WriteLine($"Device name changed: {device}");
+
+                if (device.Address.ToString("X").Contains("80"))
+                    bleToSerialPiper.WriteSerialData(device.Data);
             };
 
             watcher.DeviceTimeout += (device) =>
@@ -39,6 +46,28 @@ namespace BLETesting
                 Console.WriteLine($"Device timeout {device}");
             };
 
+            watcher.DeviceDataChanged += (device) =>
+            {
+                Console.ForegroundColor = ConsoleColor.Blue;
+                Console.WriteLine($"Device data changed: {device}");
+
+                if (device.Address.ToString("X").Contains("80"))
+                    bleToSerialPiper.WriteSerialData(device.Data);
+            };
+
+            bleToSerialPiper.DataSent += () =>
+            {
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.WriteLine("Data frame sent!");
+            };
+
+            bleToSerialPiper.DataReceived += () =>
+            {
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.WriteLine("Data received!");
+            };
+
+            bleToSerialPiper.OpenPort(10, 9600);
             watcher.StartListening();
 
             while (true)
@@ -46,7 +75,7 @@ namespace BLETesting
                 // Pause until we press enter
                 Console.ReadLine();
 
-                // Get discovere devices
+                // Get discover devices
                 var devices = watcher.DiscoveredDevices;
 
                 Console.ForegroundColor = ConsoleColor.White;
@@ -56,5 +85,7 @@ namespace BLETesting
                     Console.WriteLine(device);
             }
         }
+
+        
     }
 }
