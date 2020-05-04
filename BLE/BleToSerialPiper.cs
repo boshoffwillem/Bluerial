@@ -77,8 +77,24 @@ namespace BLE
             // Create incoming data listener
             mSerialPort.DataReceived += SerialDataReceived;
 
-            // Open serial port
-            mSerialPort.Open();
+            try
+            {
+                // Open serial port
+                mSerialPort.Open();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                throw;
+            }
+            catch (ArgumentOutOfRangeException)
+            { }
+            catch (ArgumentException)
+            { }
+            catch (System.IO.IOException)
+            { 
+            }
+            catch (InvalidOperationException)
+            { }
 
             // If everything executed...
             result = true;
