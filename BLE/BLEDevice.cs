@@ -105,8 +105,10 @@ namespace BLE
         public override string ToString()
         {
             return $"{(string.IsNullOrEmpty(Name) ? "[No name]" : Name)} {Address:X} ({SignalStrengthInDB})\n" +
-                $"\tConnected: {Connected}, Pairable: {CanPair}, Paired: {Paired}, Device id: {DeviceId}\n" + 
-                $"\tCompany(SIG) id: {CompanyId:X} => Data: {BitConverter.ToString(Data ?? new byte[] { 0 })}";
+                $"\tConnected: {Connected}, Pairable: {CanPair}, Paired: {Paired}\n" +
+                $"\tDevice id: {DeviceId}\n" + 
+                $"\tCompany(SIG) id: {CompanyId:X} => Data: {BitConverter.ToString(Data ?? new byte[] { 0 })}\n" +
+                $"\t{DateTime.Now}";
         }
     }
 }
