@@ -157,7 +157,7 @@ namespace BLE
 
             // Is new discovery?
             bool newDiscovery = false;
-            string existingName = default(string);
+            string existingName = default;
             bool nameChanged = false;
 
             // if not a BLE device with GATT services and appropriate information...
@@ -240,6 +240,11 @@ namespace BLE
                         data: advertisementData
                     );
 
+                    // If we are no longer listening...
+                    if (!Listening)
+                        // don't do anything
+                        return;
+
                     // Add/update device in dictionary
                     mDiscoveredDevices[hexAddress] = device;
 
@@ -275,6 +280,11 @@ namespace BLE
                         !string.IsNullOrEmpty(device.Name) &&
                         // And the name is different
                         existingName != device.Name;
+
+                    // If we are no longer listening...
+                    if (!Listening)
+                        // don't do anything
+                        return;
 
                     // Add/update device in dictionary
                     mDiscoveredDevices[device.DeviceId] = device;

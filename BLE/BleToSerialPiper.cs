@@ -109,7 +109,7 @@ namespace BLE
         /// <param name="e">The accompanying arguments</param>
         private void SerialDataReceived(object sender, SerialDataReceivedEventArgs e)
         {
-            // TODO implement function
+            // TODO: implement function
             DataReceived();
         }
 

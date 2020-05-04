@@ -5,7 +5,7 @@ namespace BLETesting
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             var watcher = new BLEAdvertisementWatcher(new GattServiceIds());
             BleToSerialPiper bleToSerialPiper = new BleToSerialPiper(null, null);            
