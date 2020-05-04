@@ -413,6 +413,9 @@ namespace BLE
 
                 // Clear any devices
                 mDiscoveredDevices.Clear();
+
+                // Inform listener that were stopping
+                StoppedListening();
             }
         }
         #endregion
