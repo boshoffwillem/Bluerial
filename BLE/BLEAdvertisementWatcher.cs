@@ -25,7 +25,7 @@ namespace BLE
         /// <summary>
         /// List of discovered devices
         /// </summary>
-        private readonly Dictionary<ulong, BLEDevice> mDiscoveredDevices = new Dictionary<ulong, BLEDevice>();
+        private readonly Dictionary<string, BLEDevice> mDiscoveredDevices = new Dictionary<string, BLEDevice>();
 
         /// <summary>
         /// The details about GATT services
@@ -140,100 +140,145 @@ namespace BLE
         /// </summary>
         /// <param name="sender">The watcher</param>
         /// <param name="args">The arguments</param>
-        private  void WatcherAdvertisementReceived(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs args)
+        private async void WatcherAdvertisementReceived(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs args)
         {
             // Clean up any device timeouts
             CleanupTimeouts();
 
-            // Get ble device info
-            //var device = await GetBluetoothLEDeviceAsync(args.BluetoothAddress, args.Timestamp, args.RawSignalStrengthInDBm);
+            // Get ble device info           
             BLEDevice device = null;
 
-            // Null guard
-            //if (device == null)
-            //    return;               
+            try
+            {
+                device = await GetBluetoothLEDeviceAsync(args.BluetoothAddress, args.Timestamp, args.RawSignalStrengthInDBm);
+            }
+            catch
+            { }
 
             // Is new discovery?
-            var newDiscovery = false;
+            bool newDiscovery = false;
+            string existingName = default(string);
+            bool nameChanged = false;
 
-            lock (mThreadLock)
+            // if not a BLE device with GATT services and appropriate information...
+            if (device == null)
             {
-                //newDiscovery = !mDiscoveredDevices.ContainsKey(device.DeviceId); 
-                newDiscovery = !mDiscoveredDevices.ContainsKey(args.BluetoothAddress); 
-            }
+                // Get hex representation of address.
+                string hexAddress = args.BluetoothAddress.ToString("X");
 
-            // Name changed?
-            var nameChanged =
-                // If it already exists
-                !newDiscovery &&
-                // And it's not a blank name
-                !string.IsNullOrEmpty(args.Advertisement.LocalName) &&
-                // And the name is different
-                mDiscoveredDevices[args.BluetoothAddress].Name != args.Advertisement.LocalName;
-         
-            lock (mThreadLock)
-            {
-                // Get name of device
-                var name = args.Advertisement.LocalName;
+                lock (mThreadLock)
+                {                    
+                    newDiscovery = !mDiscoveredDevices.ContainsKey(hexAddress);
 
-                // If new name is blank, and we already have a device...
-                if (string.IsNullOrEmpty(name) && !newDiscovery)
-                    // Don't override what could be an actual name already
-                    name = mDiscoveredDevices[args.BluetoothAddress].Name;
+                    // If this is not new...
+                    if (!newDiscovery)
+                        // store the old name
+                        existingName = mDiscoveredDevices[hexAddress].Name;
 
-                // Get manufacturer data
-                var manufacturerSections = args.Advertisement.ManufacturerData;
-                ushort companyId = 0;
-                byte[] advertisementData = null;
+                    // Name changed?
+                    nameChanged =
+                        // If it already exists
+                        !newDiscovery &&
+                        // And is not a blank  name
+                        !string.IsNullOrEmpty(args.Advertisement.LocalName) &&
+                        // And the name is different
+                        existingName != args.Advertisement.LocalName;
 
-                if (manufacturerSections.Count > 0)
-                {
-                    // Only print the first one of the list
-                    var manufacturerData = manufacturerSections[0];
+                    // Get name of device
+                    var name = args.Advertisement.LocalName;
 
-                    // Get the advertisement data
-                    advertisementData = new byte[manufacturerData.Data.Length];
-                    using (var reader = DataReader.FromBuffer(manufacturerData.Data))
+                    // If new name is blank, and we already have a device...
+                    if (string.IsNullOrEmpty(name) && !newDiscovery)
+                        // Don't override what could be an actual name already
+                        name = mDiscoveredDevices[hexAddress].Name;
+
+                    // Get manufacturer data
+                    var manufacturerSections = args.Advertisement.ManufacturerData;
+                    ushort companyId = 0;
+                    byte[] advertisementData = null;
+
+                    if (manufacturerSections.Count > 0)
                     {
-                        reader.ReadBytes(advertisementData);
+                        // Only print the first one of the list
+                        var manufacturerData = manufacturerSections[0];
+
+                        // Get the advertisement data
+                        advertisementData = new byte[manufacturerData.Data.Length];
+                        using (var reader = DataReader.FromBuffer(manufacturerData.Data))
+                        {
+                            reader.ReadBytes(advertisementData);
+                        }
+
+                        // Get the company id
+                        companyId = manufacturerData.CompanyId;
                     }
 
-                    // Get the company id
-                    companyId = manufacturerData.CompanyId;                   
-                }
+                    // If an existing device...
+                    if (!newDiscovery)
+                    {
+                        // If there is no new advertisement data...
+                        if (advertisementData == null)
+                            // Use last received data
+                            advertisementData = mDiscoveredDevices[hexAddress].Data;
 
-                // If not new device...
-                if (!newDiscovery)
+                        // If the company id did not refresh...
+                        if (companyId == 0)
+                            // If last known company id is different...
+                            if (!companyId.Equals(mDiscoveredDevices[hexAddress].CompanyId))
+                                // Use last known id
+                                companyId = mDiscoveredDevices[hexAddress].CompanyId;
+                    }
+
+                    // Create new device
+                    device = new BLEDevice
+                    (
+                        broadcastTime: args.Timestamp,
+                        address: args.BluetoothAddress,
+                        name: name,
+                        rssi: args.RawSignalStrengthInDBm,
+                        companyId: companyId,
+                        data: advertisementData
+                    );
+
+                    // Add/update device in dictionary
+                    mDiscoveredDevices[hexAddress] = device;
+
+                    // If not new device...
+                    if (!newDiscovery)
+                    {
+                        if (advertisementData != null)
+                            // if advertisement data is different...
+                            if (!advertisementData.Equals(mDiscoveredDevices[hexAddress].Data))
+                                // then notify listeners
+                                DeviceDataChanged(device);
+                    }
+                } 
+            }
+            // if BLE device that was successfully decoded by <see cref="GetBluetoothLEDeviceAsync"/>...
+            else
+            {             
+                lock (mThreadLock)
                 {
-                    // If company id is invalid...
-                    if (companyId == 0)
-                        // Use last valid id
-                        companyId = mDiscoveredDevices[args.BluetoothAddress].CompanyId;
+                    // Check if this is a new discovery
+                    newDiscovery = !mDiscoveredDevices.ContainsKey(device.DeviceId);
 
-                    // And data is invalid..
-                    if (advertisementData == null)
-                        // Use last valid data
-                        advertisementData = mDiscoveredDevices[args.BluetoothAddress].Data;
+                    // If this is not new...
+                    if (!newDiscovery)
+                        // store the old name
+                        existingName = mDiscoveredDevices[device.DeviceId].Name;
 
-                    // If data of know devices changes..
-                    if (!advertisementData.Equals(mDiscoveredDevices[args.BluetoothAddress].Data))
-                        // then notify listeners
-                        DeviceDataChanged(device);
+                    // Name changed?
+                    nameChanged =
+                        // If it already exists
+                        !newDiscovery &&
+                        // And is not a blank  name
+                        !string.IsNullOrEmpty(device.Name) &&
+                        // And the name is different
+                        existingName != device.Name;
+
+                    // Add/update device in dictionary
+                    mDiscoveredDevices[device.DeviceId] = device;
                 }
-
-                // Create new device
-                device = new BLEDevice
-                (
-                    broadcastTime: args.Timestamp,
-                    address: args.BluetoothAddress,
-                    name: name,
-                    rssi: args.RawSignalStrengthInDBm,
-                    companyId: companyId,
-                    data: advertisementData
-                );
-
-                // Add/update device in dictionary
-                mDiscoveredDevices[args.BluetoothAddress] = device;
             }
 
             // Inform listeners
@@ -261,7 +306,7 @@ namespace BLE
         private async Task<BLEDevice> GetBluetoothLEDeviceAsync(ulong address, DateTimeOffset broadcastTime, short rssi)
         {           
             // Get bluetooth device info
-            var device = await BluetoothLEDevice.FromBluetoothAddressAsync(address).AsTask();
+            using var device = await BluetoothLEDevice.FromBluetoothAddressAsync(address).AsTask();
 
             // Null guard
             if (device == null)
