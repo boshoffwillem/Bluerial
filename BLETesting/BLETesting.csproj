@@ -6,7 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BLE\BLE.csproj" />
+    <ProjectReference Include="..\BLEComms\BLEComms.csproj" />
+    <ProjectReference Include="..\SerialComms\SerialComms.csproj" />
   </ItemGroup>
 
   <ItemGroup>

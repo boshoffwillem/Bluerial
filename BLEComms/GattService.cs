@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace BLE
+﻿namespace BLE
 {
     /// <summary>
     /// Details to specific GATT service <see cref="https://www.bluetooth.com/specifications/gatt/services/"/>
