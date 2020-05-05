@@ -26,6 +26,11 @@ namespace BLE
         /// This is a custom ETX to append to data being sent
         /// </summary>
         public byte[] ETX { get; set; }
+
+        /// <summary>
+        /// Indicates if port is open
+        /// </summary>
+        public bool IsOpen { get; set; } = false;
         #endregion
 
         #region Public Events
@@ -81,6 +86,7 @@ namespace BLE
             {
                 // Open serial port
                 mSerialPort.Open();
+                IsOpen = true;
             }
             catch (UnauthorizedAccessException)
             {

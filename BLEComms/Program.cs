@@ -1,6 +1,8 @@
 ﻿using BLE;
 using System;
 using System.Collections.Generic;
+using RabbitMQ.Client;
+using System.Text;
 
 namespace BLEComms
 {
@@ -9,7 +11,19 @@ namespace BLEComms
         static void Main(string[] args)
         {
             List<string> deviceFilters = new List<string>();
-            var watcher = new BLEAdvertisementWatcher(new GattServiceIds());            
+            var watcher = new BLEAdvertisementWatcher(new GattServiceIds());
+
+            // Build RabbitMQ producer
+            ConnectionFactory bleMessagesFactory = new ConnectionFactory() { HostName = "localhost" };
+            using IConnection bleMessagesConnection = bleMessagesFactory.CreateConnection();
+            using IModel bleMessagesChannel = bleMessagesConnection.CreateModel();
+
+            // Create/Use ble-messages queue
+            bleMessagesChannel.QueueDeclare(queue: "ble-messages",
+                                     durable: false,
+                                     exclusive: false,
+                                     autoDelete: false,
+                                     arguments: null);            
 
             watcher.StartedListening += () =>
             {
@@ -25,49 +39,150 @@ namespace BLEComms
 
             watcher.NewDeviceDiscovered += (device) =>
             {
+                // Build message to produce
+                string message = $"New device: {device}";
+                // format message
+                var body = Encoding.UTF8.GetBytes(message);
+
                 Console.ForegroundColor = ConsoleColor.Green;
 
                 // If no filters...
                 if (deviceFilters.Count == 0)
+                {
                     // Listen to all devices
-                    Console.WriteLine($"New device: {device}");
+                    Console.WriteLine(message);
+
+                    // Produce message
+                    bleMessagesChannel.BasicPublish(exchange: "",
+                                         routingKey: "ble-messages",
+                                         basicProperties: null,
+                                         body: body);
+                }
                 else
+                {
                     // Only listen to specific devices
                     if (deviceFilters.Contains(device.DeviceId))
-                    Console.WriteLine($"New device: {device}");
+                    {
+                        Console.WriteLine(message);
+                     
+                        // Produce message
+                        bleMessagesChannel.BasicPublish(exchange: "",
+                                             routingKey: "ble-messages",
+                                             basicProperties: null,
+                                             body: body);
+                    }
+                }                    
             };
 
             watcher.DeviceNameChanged += (device) =>
             {
+                // Build message to produce
+                string message = $"Device name changed: {device}";
+                // format message
+                var body = Encoding.UTF8.GetBytes(message);
+
                 Console.ForegroundColor = ConsoleColor.Blue;
 
+                // If no filters...
                 if (deviceFilters.Count == 0)
-                    Console.WriteLine($"Device name changed: {device}");
+                {
+                    // Listen to all devices
+                    Console.WriteLine(message);
+
+                    // Produce message
+                    bleMessagesChannel.BasicPublish(exchange: "",
+                                         routingKey: "ble-messages",
+                                         basicProperties: null,
+                                         body: body);
+                }
                 else
+                {
+                    // Only listen to specific devices
                     if (deviceFilters.Contains(device.DeviceId))
-                    Console.WriteLine($"Device name changed: {device}");
+                    {
+                        Console.WriteLine(message);
+
+                        // Produce message
+                        bleMessagesChannel.BasicPublish(exchange: "",
+                                             routingKey: "ble-messages",
+                                             basicProperties: null,
+                                             body: body);
+                    }
+                }
             };
 
             watcher.DeviceTimeout += (device) =>
             {
+                // Build message to produce
+                string message = $"Device timeout: {device}";
+                // format message
+                var body = Encoding.UTF8.GetBytes(message);
+
                 Console.ForegroundColor = ConsoleColor.Red;
 
+                // If no filters...
                 if (deviceFilters.Count == 0)
-                    Console.WriteLine($"Device timeout {device}");
+                {
+                    // Listen to all devices
+                    Console.WriteLine(message);
+
+                    // Produce message
+                    bleMessagesChannel.BasicPublish(exchange: "",
+                                         routingKey: "ble-messages",
+                                         basicProperties: null,
+                                         body: body);
+                }
                 else
+                {
+                    // Only listen to specific devices
                     if (deviceFilters.Contains(device.DeviceId))
-                    Console.WriteLine($"Device timeout {device}");
+                    {
+                        Console.WriteLine(message);
+
+                        // Produce message
+                        bleMessagesChannel.BasicPublish(exchange: "",
+                                             routingKey: "ble-messages",
+                                             basicProperties: null,
+                                             body: body);
+                    }
+                }
             };
 
             watcher.DeviceDataChanged += (device) =>
             {
+                // Build message to produce
+                string message = $"Device data changed: {device}";
+                // format message
+                var body = Encoding.UTF8.GetBytes(message);
+
                 Console.ForegroundColor = ConsoleColor.Blue;
 
+                // If no filters...
                 if (deviceFilters.Count == 0)
-                    Console.WriteLine($"Device data changed: {device}");
+                {
+                    // Listen to all devices
+                    Console.WriteLine(message);
+
+                    // Produce message
+                    bleMessagesChannel.BasicPublish(exchange: "",
+                                         routingKey: "ble-messages",
+                                         basicProperties: null,
+                                         body: body);
+                }
                 else
+                {
+                    // Only listen to specific devices
                     if (deviceFilters.Contains(device.DeviceId))
-                    Console.WriteLine($"Device data changed: {device}");
+                    {
+                        Console.WriteLine(message);
+
+                        // Produce message
+                        bleMessagesChannel.BasicPublish(exchange: "",
+                                             routingKey: "ble-messages",
+                                             basicProperties: null,
+                                             body: body);
+                    }
+                }
             };
            
             watcher.StartListening();
