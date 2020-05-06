@@ -19,6 +19,7 @@
 
 **"serial-open###comPort: xx, baudRate: xx, parity: Parity.None, dataBits: 8, stopBits: StopBits.One"** -- Opens the specified serial port, eg. "comPort: 5, baudRate: 9600,
                                                                                                        parity: Parity.  None, dataBits: 8, stopBits: StopBits.One".
+**"serial-close"** -- Close a opended serial port.
 **"serial-stx###xx"** -- Sets the STX value in the serial service. Format is xx,xx...
 **"serial-etx###xx"** -- Sets the ETX value in the serial service. Format is xx,xx...
 **"serial-message###xx"** -- Sends message "xx" to service to be transmitted.
