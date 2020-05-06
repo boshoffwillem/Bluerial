@@ -219,7 +219,7 @@ namespace BLEComms
                         break;
                     default: // If none of the above...
                         // If "add-XX" command...
-                        if (command.Contains("add-"))
+                        if (command.Contains("add"))
                         {
                             string filter = command.Split('-')[1].ToUpper();
                             // Add new filter

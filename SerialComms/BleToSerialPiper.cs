@@ -43,6 +43,22 @@ namespace BLE
         /// Fired when a data frame is received
         /// </summary>
         public event Action DataReceived = () => { };
+
+        /// <summary>
+        /// Fired when port is open
+        /// </summary>
+        public event Action OpenedPort = () => { };
+
+
+        /// <summary>
+        /// Fired when port is closed
+        /// </summary>
+        public event Action ClosedPort = () => { };
+
+        /// <summary>
+        /// Fired when there is an error on the port
+        /// </summary>
+        public event SerialErrorReceivedEventHandler PortError = (port, args) => { };
         #endregion
 
         #region Constructor
@@ -70,11 +86,10 @@ namespace BLE
         public bool OpenPort(byte comPort, int baudRate, Parity parity = Parity.None, 
             int dataBits = 8, StopBits stopBits = StopBits.One)
         {
-            bool result = false;
             // If serial port is already open...
             if (mSerialPort != null)
                 // then close it
-                mSerialPort.Close();
+                ClosePort();
 
             // Create serial port
             mSerialPort = new SerialPort("COM" + comPort, baudRate, parity, dataBits, stopBits);
@@ -82,30 +97,27 @@ namespace BLE
             // Create incoming data listener
             mSerialPort.DataReceived += SerialDataReceived;
 
+            // Create listener for port errors
+            mSerialPort.ErrorReceived += PortError;
+
             try
             {
                 // Open serial port
                 mSerialPort.Open();
                 IsOpen = true;
+                OpenedPort();
+                return true;
             }
             catch (UnauthorizedAccessException)
-            {
-                throw;
-            }
+            { return false; }
             catch (ArgumentOutOfRangeException)
-            { }
+            { return false; }
             catch (ArgumentException)
-            { }
+            { return false; }
             catch (System.IO.IOException)
-            { 
-            }
+            { return false; }
             catch (InvalidOperationException)
-            { }
-
-            // If everything executed...
-            result = true;
-
-            return result;
+            { return false; }
         }
 
         /// <summary>
@@ -155,6 +167,30 @@ namespace BLE
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Close the serial port if open
+        /// </summary>
+        /// <returns></returns>
+        public bool ClosePort()
+        {
+            if (mSerialPort.IsOpen)
+            {
+                try
+                {
+                    mSerialPort.Close();
+                    IsOpen = false;
+                    ClosedPort();
+                    return true;
+                }
+                catch (System.IO.IOException)
+                {
+                    return false;
+                }
+            }
+            else
+                return true;
         }
         #endregion
 
