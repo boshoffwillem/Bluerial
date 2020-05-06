@@ -58,7 +58,7 @@ namespace BLE
         /// <summary>
         /// Fired when there is an error on the port
         /// </summary>
-        public event SerialErrorReceivedEventHandler PortError = (port, args) => { };
+        public event SerialErrorReceivedEventHandler PortError = (sender, args) => { };
         #endregion
 
         #region Constructor

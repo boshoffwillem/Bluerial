@@ -1,6 +1,0 @@
-﻿start -- starts listening
-stop -- stop listening
-devices -- lists discovered devices
-clear -- clears device filters
-blank -- clears console screen
-add-xx -- adds xx to device filters

@@ -3,110 +3,138 @@ using System;
 using System.Collections.Generic;
 using RabbitMQ.Client;
 using System.Text;
+using RabbitMQ.Client.Events;
 
 namespace BLEComms
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
+            Console.WriteLine("BLE service started");
+
             List<string> deviceFilters = new List<string>();
             var watcher = new BLEAdvertisementWatcher(new GattServiceIds());
 
-            // Build RabbitMQ producer
+            // Build RabbitMQ channel for BLE service
             ConnectionFactory bleMessagesFactory = new ConnectionFactory() { HostName = "localhost" };
             using IConnection bleMessagesConnection = bleMessagesFactory.CreateConnection();
             using IModel bleMessagesChannel = bleMessagesConnection.CreateModel();
 
-            // Create/Use ble-messages queue
-            bleMessagesChannel.QueueDeclare(queue: "ble-messages",
+            #region RabbitMQ Producer for BLE Service
+            // Create/Use queue
+            bleMessagesChannel.QueueDeclare(queue: "ble-service-producer",
                                      durable: false,
                                      exclusive: false,
                                      autoDelete: false,
-                                     arguments: null);            
+                                     arguments: null);
+            #endregion
 
-            watcher.StartedListening += () =>
+            #region RabbitMQ Consumer for BLE Service
+            // Create/Use queue
+            bleMessagesChannel.QueueDeclare(queue: "ble-service-consumer",
+                                     durable: false,
+                                     exclusive: false,
+                                     autoDelete: false,
+                                     arguments: null);
+
+            // Create a consumer
+            EventingBasicConsumer bleMessagesConsumer = new EventingBasicConsumer(bleMessagesChannel);
+
+            // Callback for received/consumed messages
+            bleMessagesConsumer.Received += (model, ea) =>
             {
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine("Started listening");
+                ReadOnlyMemory<byte> body = ea.Body;
+                string message = Encoding.UTF8.GetString(body.ToArray());
+
+                if (message.StartsWith("ble-"))
+                {
+                    string command = message.Split('-')[1];
+
+                    switch (command)
+                    {
+                        case "start": // Start listening
+                            if (!watcher.Listening)
+                                watcher.StartListening();
+                            break;
+                        case "stop": // Stop listening
+                            if (watcher.Listening)
+                                watcher.StopListening();
+                            break;
+                        case "devices": // Get discovered devices
+                            SendDevicesMessage(bleMessagesChannel, watcher.DiscoveredDevices);
+                            break;
+                        case "clear": // Clear device filters
+                            deviceFilters = new List<string>();
+                            break;
+                        case "add": // Add filter
+                            string filter = message.Split("###")[1];
+
+                            if (!deviceFilters.Contains(filter))
+                                // Add new filter
+                                deviceFilters.Add(filter);
+                            break;
+                        case "filters":
+                            SendActiveFilters(bleMessagesChannel, deviceFilters);
+                            break;
+                        default:
+                            break;
+                    } 
+                }
             };
+
+            // Start consumer
+            bleMessagesChannel.BasicConsume(queue: "ble-service-consumer",
+                                 autoAck: true,
+                                 consumer: bleMessagesConsumer);
+            #endregion
+
+            #region Events
+            watcher.StartedListening += () =>
+                {
+                    StartScanning(bleMessagesChannel);
+                };
 
             watcher.StoppedListening += () =>
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("Stopped listening");
+                StopScanning(bleMessagesChannel);
             };
 
             watcher.NewDeviceDiscovered += (device) =>
             {
-                // Build message to produce
                 string message = $"New device: {device}";
-                // format message
-                var body = Encoding.UTF8.GetBytes(message);
-
-                Console.ForegroundColor = ConsoleColor.Green;
 
                 // If no filters...
                 if (deviceFilters.Count == 0)
                 {
-                    // Listen to all devices
-                    Console.WriteLine(message);
-
-                    // Produce message
-                    bleMessagesChannel.BasicPublish(exchange: "",
-                                         routingKey: "ble-messages",
-                                         basicProperties: null,
-                                         body: body);
+                    SendMessage(bleMessagesChannel, message);
                 }
                 else
                 {
                     // Only listen to specific devices
                     if (deviceFilters.Contains(device.DeviceId))
                     {
-                        Console.WriteLine(message);
-                     
-                        // Produce message
-                        bleMessagesChannel.BasicPublish(exchange: "",
-                                             routingKey: "ble-messages",
-                                             basicProperties: null,
-                                             body: body);
+                        SendMessage(bleMessagesChannel, message);
                     }
-                }                    
+                }
             };
 
             watcher.DeviceNameChanged += (device) =>
             {
                 // Build message to produce
                 string message = $"Device name changed: {device}";
-                // format message
-                var body = Encoding.UTF8.GetBytes(message);
-
-                Console.ForegroundColor = ConsoleColor.Blue;
 
                 // If no filters...
                 if (deviceFilters.Count == 0)
                 {
-                    // Listen to all devices
-                    Console.WriteLine(message);
-
-                    // Produce message
-                    bleMessagesChannel.BasicPublish(exchange: "",
-                                         routingKey: "ble-messages",
-                                         basicProperties: null,
-                                         body: body);
+                    SendMessage(bleMessagesChannel, message);
                 }
                 else
                 {
                     // Only listen to specific devices
                     if (deviceFilters.Contains(device.DeviceId))
                     {
-                        Console.WriteLine(message);
-
-                        // Produce message
-                        bleMessagesChannel.BasicPublish(exchange: "",
-                                             routingKey: "ble-messages",
-                                             basicProperties: null,
-                                             body: body);
+                        SendMessage(bleMessagesChannel, message);
                     }
                 }
             };
@@ -115,35 +143,18 @@ namespace BLEComms
             {
                 // Build message to produce
                 string message = $"Device timeout: {device}";
-                // format message
-                var body = Encoding.UTF8.GetBytes(message);
-
-                Console.ForegroundColor = ConsoleColor.Red;
 
                 // If no filters...
                 if (deviceFilters.Count == 0)
                 {
-                    // Listen to all devices
-                    Console.WriteLine(message);
-
-                    // Produce message
-                    bleMessagesChannel.BasicPublish(exchange: "",
-                                         routingKey: "ble-messages",
-                                         basicProperties: null,
-                                         body: body);
+                    SendMessage(bleMessagesChannel, message);
                 }
                 else
                 {
                     // Only listen to specific devices
                     if (deviceFilters.Contains(device.DeviceId))
                     {
-                        Console.WriteLine(message);
-
-                        // Produce message
-                        bleMessagesChannel.BasicPublish(exchange: "",
-                                             routingKey: "ble-messages",
-                                             basicProperties: null,
-                                             body: body);
+                        SendMessage(bleMessagesChannel, message);
                     }
                 }
             };
@@ -152,82 +163,130 @@ namespace BLEComms
             {
                 // Build message to produce
                 string message = $"Device data changed: {device}";
-                // format message
-                var body = Encoding.UTF8.GetBytes(message);
-
-                Console.ForegroundColor = ConsoleColor.Blue;
 
                 // If no filters...
                 if (deviceFilters.Count == 0)
                 {
-                    // Listen to all devices
-                    Console.WriteLine(message);
-
-                    // Produce message
-                    bleMessagesChannel.BasicPublish(exchange: "",
-                                         routingKey: "ble-messages",
-                                         basicProperties: null,
-                                         body: body);
+                    SendMessage(bleMessagesChannel, message);
                 }
                 else
                 {
                     // Only listen to specific devices
                     if (deviceFilters.Contains(device.DeviceId))
                     {
-                        Console.WriteLine(message);
-
-                        // Produce message
-                        bleMessagesChannel.BasicPublish(exchange: "",
-                                             routingKey: "ble-messages",
-                                             basicProperties: null,
-                                             body: body);
+                        SendMessage(bleMessagesChannel, message);
                     }
                 }
-            };
-           
+            }; 
+            #endregion
+
             watcher.StartListening();
 
-            while (true)
+            Console.WriteLine(" Press [enter] to exit.");
+            Console.ReadLine();
+        }
+
+        /// <summary>
+        /// Send message that scanning has started
+        /// </summary>
+        /// <param name="bleMessagesChannel">RabbitMQ channel to use</param>
+        private static void StartScanning(IModel bleMessagesChannel)
+        {
+            // Build message to produce
+            string message = $"ble-scan-started";
+            // format message
+            byte[] body = Encoding.UTF8.GetBytes(message);
+
+            // Produce message
+            bleMessagesChannel.BasicPublish(exchange: "",
+                                 routingKey: "ble-service-producer",
+                                 basicProperties: null,
+                                 body: body);
+        }
+
+        /// <summary>
+        /// Send message that scanning has stopped
+        /// </summary>
+        /// <param name="bleMessagesChannel">RabbitMQ channel to use</param>
+        private static void StopScanning(IModel bleMessagesChannel)
+        {
+            // Build message to produce
+            string message = $"ble-scan-stopped";
+            // format message
+            byte[] body = Encoding.UTF8.GetBytes(message);
+
+            // Produce message
+            bleMessagesChannel.BasicPublish(exchange: "",
+                                 routingKey: "ble-service-producer",
+                                 basicProperties: null,
+                                 body: body);
+        }
+
+        /// <summary>
+        /// Send list of devices discovered so far
+        /// </summary>
+        /// <param name="bleMessagesChannel">RabbitMQ channel to use</param>
+        /// <param name="devices">List of devices discovered so far</param>
+        private static void SendDevicesMessage(IModel bleMessagesChannel, IReadOnlyCollection<BLEDevice> devices)
+        {
+            string devicesDiscovered = "";
+
+            foreach (var device in devices)
+                devicesDiscovered += "\t" + device + "\n\n";
+
+            // Build message to produce
+            string message = $"ble-devices-###\n{devicesDiscovered}";
+            // format message
+            byte[] body = Encoding.UTF8.GetBytes(message);
+
+            // Produce message
+            bleMessagesChannel.BasicPublish(exchange: "",
+                                 routingKey: "ble-service-producer",
+                                 basicProperties: null,
+                                 body: body);
+        }
+
+        /// <summary>
+        /// Send info regarding a device
+        /// </summary>
+        /// <param name="bleMessagesChannel">RabbitMQ channel to use</param>
+        /// <param name="message">Message to send</param>
+        private static void SendMessage(IModel bleMessagesChannel, string message)
+        {
+            // Build message to produce
+            message = $"ble-message-###{message}" ;
+            // format message
+            var body = Encoding.UTF8.GetBytes(message);
+
+            // Produce message
+            bleMessagesChannel.BasicPublish(exchange: "",
+                                 routingKey: "ble-service-producer",
+                                 basicProperties: null,
+                                 body: body);          
+        }
+
+        /// <summary>
+        /// Send list of active device filters
+        /// </summary>
+        /// <param name="bleMessagesChannel">RabbitMQ channel to use</param>
+        /// <param name="deviceFilters">List of device filters</param>
+        private static void SendActiveFilters(IModel bleMessagesChannel, List<string> deviceFilters)
+        {
+            string message = "ble-filters-###";
+
+            foreach (string filter in deviceFilters)
             {
-                // Pause until we press enter
-                string command = Console.ReadLine();
-
-                switch (command)
-                {
-                    case "start": // Start listening
-                        if (!watcher.Listening)
-                            watcher.StartListening();
-                        break;
-                    case "stop": // Stop listening
-                        if (watcher.Listening)
-                            watcher.StopListening();
-                        break;
-                    case "devices": // Get discovered devices
-                        var devices = watcher.DiscoveredDevices;
-
-                        Console.ForegroundColor = ConsoleColor.White;
-                        Console.WriteLine($"{devices.Count} devices discovered...");
-
-                        foreach (var device in devices)
-                            Console.WriteLine(device);
-                        break;
-                    case "clear": // Clear device filters
-                        deviceFilters = new List<string>();
-                        break;
-                    case "blank": // Clear console screen
-                        Console.Clear();
-                        break;
-                    default: // If none of the above...
-                        // If "add-XX" command...
-                        if (command.Contains("add"))
-                        {
-                            string filter = command.Split('-')[1].ToUpper();
-                            // Add new filter
-                            deviceFilters.Add(filter);
-                        }
-                        break;
-                }
+                message += $"Filter: {filter}\n";
             }
+
+            // format message
+            var body = Encoding.UTF8.GetBytes(message);
+
+            // Produce message
+            bleMessagesChannel.BasicPublish(exchange: "",
+                                 routingKey: "ble-service-producer",
+                                 basicProperties: null,
+                                 body: body);
         }
     }
 }

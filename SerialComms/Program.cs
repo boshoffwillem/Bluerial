@@ -2,6 +2,8 @@
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
+using System.IO.Ports;
+using System.Linq.Expressions;
 using System.Text;
 
 namespace SerialComms
@@ -10,85 +12,201 @@ namespace SerialComms
     {
         static void Main()
         {
-            BleToSerialPiper bleToSerialPiper = new BleToSerialPiper(null, null);
+            Console.WriteLine("Serial service started");
 
+            #region Create Serial Service
+            BleToSerialPiper bleToSerialPiper = new BleToSerialPiper(null, null); 
+            #endregion
+
+            #region Events
+            // Triggered when data is sent
             bleToSerialPiper.DataSent += () =>
             {
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.WriteLine("Data frame sent!");
+                Console.ForegroundColor = ConsoleColor.DarkYellow;
             };
 
+            // Triggered when data is received
             bleToSerialPiper.DataReceived += () =>
             {
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.WriteLine("Data received!");
+                Console.ForegroundColor = ConsoleColor.Blue;
             };
 
+            // Triggered when port is opened
+            bleToSerialPiper.OpenedPort += () =>
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+            };
+
+            // Triggered when port is closed
+            bleToSerialPiper.ClosedPort += () =>
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+            };
+
+            // Triggered when there is an error on the port
+            bleToSerialPiper.PortError += (sender, args) =>
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+            };
+            #endregion
+
+            #region Create RabbitMQ Producer
+            #endregion
+
+            #region Create RabbitMQ Consumer
             // Create RabbitMQ consumer for serial messages
-            ConnectionFactory serialMessagesFactory = new ConnectionFactory() { HostName = "localhost" };
-            using IConnection serialMessagesConnection = serialMessagesFactory.CreateConnection();
-            using IModel serialMessagesChannel = serialMessagesConnection.CreateModel();
+            ConnectionFactory serialServiceFactory = new ConnectionFactory() { HostName = "localhost" };
+            using IConnection serialServiceConnection = serialServiceFactory.CreateConnection();
+            using IModel serialServiceChannel = serialServiceConnection.CreateModel();
 
             // Create/Use serial-messages queue
-            serialMessagesChannel.QueueDeclare(queue: "serial-messages",
+            serialServiceChannel.QueueDeclare(queue: "serial-service-slave",
                                      durable: false,
                                      exclusive: false,
                                      autoDelete: false,
                                      arguments: null);
 
             // Create a consumer
-            EventingBasicConsumer serialMessagesConsumer = new EventingBasicConsumer(serialMessagesChannel);
-
+            EventingBasicConsumer serialServiceConsumer = new EventingBasicConsumer(serialServiceChannel); 
+            
             // Callback for received/consumed messages
-            serialMessagesConsumer.Received += (model, ea) =>
+            serialServiceConsumer.Received += (model, ea) =>
             {
                 ReadOnlyMemory<byte> body = ea.Body;
                 string message = Encoding.UTF8.GetString(body.ToArray());
-                
-                if (message.Contains("OpenPort")) // for example, OpenPort(10, 9600)
-                {
-                    string[] parameters = message.Split('(')[1].Trim(new char[] { ')', ' ' }).Split(',');
-                    byte port = byte.Parse(parameters[0]);
-                    int baud = int.Parse(parameters[1]);
-                    bleToSerialPiper.OpenPort(port, baud);
-                }
 
-                if (message.Contains("STX")) // for example, STX:02,0A
+                if (message.StartsWith("serial-"))
                 {
-                    string parameters = message.Split(':')[1];
-                    string[] bytes = parameters.Split(',');
-                    byte[] stx = Array.ConvertAll(bytes,
-                        element => byte.Parse(element));
-                    bleToSerialPiper.STX = stx;
-                }
+                    // The type of message
+                    string[] commands = message.Split('-');
 
-                if (message.Contains("STX")) // for example, ETX:02,0A
-                {
-                    string parameters = message.Split(':')[1];
-                    string[] bytes = parameters.Split(',');
-                    byte[] etx = Array.ConvertAll(bytes,
-                        element => byte.Parse(element));
-                    bleToSerialPiper.ETX = etx;
-                }
+                    // Data carried by the message
+                    string parameters;
 
-                if (message.Contains("WriteSerialData")) // for example, WriteSerialData(0A,01,02)
-                {
-                    if (bleToSerialPiper.IsOpen)
+                    switch (commands[1])
                     {
-                        string[] bytes = message.Split('(')[1].Trim(new char[] { ')', ' ' }).Split(',');
-                        byte[] data = Array.ConvertAll(bytes,
-                            element => byte.Parse(element));
-                        bleToSerialPiper.WriteSerialData(data);
+                        case "open": // Open the serial port
+                            parameters = message.Split("###")[1].Replace(" ", string.Empty).Trim();
+                            string[] arguments = parameters.Split(',');
+                            byte comPort = 0;
+                            int baudRate = 9600;
+                            Parity parity = Parity.None;
+                            int dataBits = 8;
+                            StopBits stopBits = StopBits.One;
+
+                            foreach (string arg in arguments)
+                            {
+                                string[] components = arg.Split(':');
+                                switch(components[0])
+                                {
+                                    case "comPort":
+                                        comPort = byte.Parse(components[1]);
+                                        break;
+                                    case "baudRate":
+                                        baudRate = int.Parse(components[1]);
+                                        break;
+                                    case "parity":
+                                        string parityOption = components[1];
+                                        switch(parityOption)
+                                        {
+                                            case "Even":
+                                                parity = Parity.Even;
+                                                break;
+                                            case "Mark":
+                                                parity = Parity.Mark;
+                                                break;
+                                            case "None":
+                                                parity = Parity.None;
+                                                break;
+                                            case "Odd":
+                                                parity = Parity.Odd;
+                                                break;
+                                            case "Space":
+                                                parity = Parity.Space;
+                                                break;
+                                            default:
+                                                break;
+                                        }
+                                        break;
+                                    case "dataBits":
+                                        dataBits = int.Parse(components[1]);
+                                        break;
+                                    case "stopBits":
+                                        string stopBitsOption = components[1];
+                                        switch (stopBitsOption)
+                                        {
+                                            case "None":
+                                                stopBits = StopBits.None;
+                                                break;
+                                            case "One":
+                                                stopBits = StopBits.One;
+                                                break;
+                                            case "OnePointFive":
+                                                stopBits = StopBits.OnePointFive;
+                                                break;
+                                            case "Two":
+                                                stopBits = StopBits.Two;
+                                                break;
+                                            default:
+                                                break;
+                                        }
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            }
+
+                            bleToSerialPiper.OpenPort(comPort: comPort, baudRate: baudRate, 
+                                parity: parity, dataBits: dataBits, stopBits: stopBits);
+                            break;
+
+                        case "close": // Close the serial port
+                            bleToSerialPiper.ClosePort();
+                            break;
+
+                        case "stx": // Set the start characters of the frame
+                            parameters = message.Split("###")[1];
+                            string[] stxStringBytes = parameters.Replace(" ", string.Empty).Trim().Split(',');
+                            byte[] stxbytes = Array.ConvertAll(stxStringBytes, element =>
+                            {
+                                return byte.Parse(element, System.Globalization.NumberStyles.HexNumber);
+                            });
+                            bleToSerialPiper.STX = stxbytes;
+                            break;
+                                                
+                        case "etx": // Set the end characters of the frame
+                            parameters = message.Split("###")[1];
+                            string[] etxStringBytes = parameters.Replace(" ", string.Empty).Trim().Split(',');
+                            byte[] etxBytes = Array.ConvertAll(etxStringBytes, element =>
+                            {
+                                return byte.Parse(element, System.Globalization.NumberStyles.HexNumber);
+                            });
+                            bleToSerialPiper.ETX = etxBytes;
+                            break;
+                            
+                        case "message": // A message to be sent
+                            parameters = message.Split("###")[1];
+                            string[] messageStringBytes = parameters.Replace(" ", string.Empty).Trim().Split(',');
+                            byte[] messageBytes = Array.ConvertAll(messageStringBytes, element =>
+                            {
+                                return byte.Parse(element, System.Globalization.NumberStyles.HexNumber);
+                            });
+                            bleToSerialPiper.WriteSerialData(messageBytes);
+                            break;
+
+                        default:
+                            break;
                     }
-                }
+                }                             
             };
 
             // Start consumer
-            serialMessagesChannel.BasicConsume(queue: "serial-messages",
+            serialServiceChannel.BasicConsume(queue: "serial-service-slave",
                                  autoAck: true,
-                                 consumer: serialMessagesConsumer);
+                                 consumer: serialServiceConsumer);
+            #endregion
 
-            Console.WriteLine(" Press [enter] to exit.");
+            Console.WriteLine("Press [enter] to exit.");
             Console.ReadLine();
         }
     }
