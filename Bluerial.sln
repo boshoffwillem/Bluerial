@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29926.136
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BLETesting", "BLETesting\BLETesting.csproj", "{D0A5D737-E769-49CB-9FB0-98E449C1705E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bluerial", "BLETesting\Bluerial.csproj", "{D0A5D737-E769-49CB-9FB0-98E449C1705E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SerialComms", "SerialComms\SerialComms.csproj", "{565BD237-0659-4F5B-A34A-30939E7C4C4B}"
 EndProject
