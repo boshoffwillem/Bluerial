@@ -1,11 +1,10 @@
-﻿using BLE;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using RabbitMQ.Client;
 using System.Text;
 using RabbitMQ.Client.Events;
 
-namespace BLEComms
+namespace BleService
 {
     class Program
     {

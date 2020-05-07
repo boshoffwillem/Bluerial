@@ -1,8 +1,7 @@
-﻿using BLE;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 
-namespace BLEComms
+namespace BleService
 {
     public class GattServiceIds : IReadOnlyCollection<GattService>
     {

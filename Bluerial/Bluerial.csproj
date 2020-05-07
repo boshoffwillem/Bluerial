@@ -10,8 +10,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BLEComms\BLEComms.csproj" />
-    <ProjectReference Include="..\SerialComms\SerialComms.csproj" />
+    <ProjectReference Include="..\BleService\BleService.csproj" />
+    <ProjectReference Include="..\SerialService\SerialService.csproj" />
   </ItemGroup>
 
   <ItemGroup>

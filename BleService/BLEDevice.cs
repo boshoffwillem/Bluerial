@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BLE
+namespace BleService
 {
     /// <summary>
     /// Information of BLE device
@@ -71,7 +71,7 @@ namespace BLE
         /// <param name="rssi">The signal strength</param>
         /// <param name="companyId">The company(SIG) id of the device</param>
         /// <param name="data">The advertised data</param>
-        /// <param name="conncted">If we are connected to the device</param>
+        /// <param name="connected">If we are connected to the device</param>
         /// <param name="canPair">If we can pair with device</param>
         /// <param name="paired">If we are paired with the device</param>
         /// <param name="deviceId">The unique id of the device (stays the same 
@@ -82,7 +82,7 @@ namespace BLE
             short rssi,            
             ushort companyId, 
             byte[] data,
-            bool conncted = false,
+            bool connected = false,
             bool canPair = false,
             bool paired = false,
             string deviceId = null)
@@ -93,7 +93,7 @@ namespace BLE
             SignalStrengthInDB = rssi;
             CompanyId = companyId;
             Data = data;
-            Connected = conncted;
+            Connected = connected;
             CanPair = canPair;
             Paired = paired;
             DeviceId = deviceId ?? address.ToString("X");

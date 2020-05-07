@@ -1,12 +1,11 @@
-﻿using BLE;
-using RabbitMQ.Client;
+﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
 using System.IO.Ports;
 using System.Linq.Expressions;
 using System.Text;
 
-namespace SerialComms
+namespace SerialService
 {
     class Program
     {

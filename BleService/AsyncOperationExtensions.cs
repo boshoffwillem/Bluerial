@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Windows.Foundation;
 
-namespace BLE
+namespace BleService
 {
     /// <summary>
     /// Provides helper methods for the <see cref="IAsyncOperation{TResult}"/>

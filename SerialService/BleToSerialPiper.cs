@@ -4,7 +4,7 @@ using System.IO.Ports;
 using System.Linq;
 using System.Text;
 
-namespace BLE
+namespace SerialService
 {
     /// <summary>
     /// This class takes data received from <see cref="BLEDevice"/>

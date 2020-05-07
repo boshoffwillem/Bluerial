@@ -1,5 +1,4 @@
-﻿using BLEComms;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -8,7 +7,7 @@ using Windows.Devices.Bluetooth.Advertisement;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
 using Windows.Storage.Streams;
 
-namespace BLE
+namespace BleService
 {
     /// <summary>
     /// Wraps and makes use of the <see cref="BLEAdvertisementWatcher" />
@@ -345,7 +344,7 @@ namespace BLE
                     rssi: rssi, 
                     companyId: 0, // ??? 
                     data: new byte[] { 0 }, // ???
-                    conncted: device.ConnectionStatus == BluetoothConnectionStatus.Connected,
+                    connected: device.ConnectionStatus == BluetoothConnectionStatus.Connected,
                     canPair: device.DeviceInformation.Pairing.CanPair, 
                     paired: device.DeviceInformation.Pairing.IsPaired, 
                     deviceId: device.DeviceId);

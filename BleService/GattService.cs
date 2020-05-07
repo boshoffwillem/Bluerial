@@ -1,4 +1,4 @@
-﻿namespace BLE
+﻿namespace BleService
 {
     /// <summary>
     /// Details to specific GATT service <see cref="https://www.bluetooth.com/specifications/gatt/services/"/>
@@ -34,13 +34,13 @@
         /// </summary>
         /// <param name="name">Name</param>
         /// <param name="uniformTypeIdentifier">UniformTypeIdentifier</param>
-        /// <param name="assingedNumber">AssignedNumber</param>
+        /// <param name="assignedNumber">AssignedNumber</param>
         /// <param name="profileSpecification">ProfileSpecification</param>
-        public GattService(string name, string uniformTypeIdentifier, ushort assingedNumber, string profileSpecification)
+        public GattService(string name, string uniformTypeIdentifier, ushort assignedNumber, string profileSpecification)
         {
             Name = name;
             UniformTypeIdentifier = uniformTypeIdentifier;
-            AssignedNumber = assingedNumber;
+            AssignedNumber = assignedNumber;
             ProfileSpecification = profileSpecification;
         }
         #endregion
