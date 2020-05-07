@@ -28,10 +28,10 @@
 
 ## Commands to Serial service
 
-**"serial-open-###comPort: xx, baudRate: xx, parity: None, dataBits: 8, stopBits: One"** -- Opens the specified serial port, eg. "comPort: 5, baudRate: 9600,
-                                                                                                       parity: None, dataBits: 8, stopBits: One".
-                                                                                                       -- parity options = Even, Mark, None, Odd, Space
-                                                                                                       --- stopBit options = None, One, OnePointFive, Two
+**"serial-open-###comPort: xx, baudRate: xx, parity: None, dataBits: 8, stopBits: One"** 
+              -- Opens the specified serial port, eg. "comPort: 5, baudRate: 9600, parity: None, dataBits: 8, stopBits: One".
+              -- parity options = Even, Mark, None, Odd, Space
+              -- stopBit options = None, One, OnePointFive, Two
 
 **"serial-close"** -- Close a opened serial port.
 
