@@ -4,5 +4,8 @@
         "emcs",
         "guuid",
         "rssi"
+    ],
+    "cSpell.ignoreWords": [
+        "stxbytes"
     ]
 }
