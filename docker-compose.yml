@@ -1,0 +1,36 @@
+version: '3.4'
+
+services:
+  ble_service:
+    image: ble_service:latest
+    build:
+      context: ./ble_service
+      dockerfile: Dockerfile
+
+  serial_service:
+    image: serial_service:latest
+    build:
+      context: ./serial_service
+      dockerfile: Dockerfile
+
+  bluerial:
+    image: bluerial:latest
+    depends_on:
+      - "ble_service"
+      - "serial_service"
+    build:
+      context: ./bluerial
+      dockerfile: Dockerfile
+
+  rabbitmq: # login guest:guest
+    image: rabbitmq:3-management
+    hostname: "rabbitmq"
+    labels:
+      NAME: "rabbitmq"
+    ports:
+    - "4369:4369"
+    - "5671:5671"
+    - "5672:5672"
+    - "25672:25672"
+    - "15671:15671"
+    - "15672:15672"
