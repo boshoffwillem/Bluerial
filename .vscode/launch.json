@@ -10,9 +10,9 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/BleService/bin/Debug/netcoreapp3.1/BleService.dll",
+            "program": "${workspaceFolder}/SerialService/bin/Debug/netcoreapp3.1/SerialService.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/BleService",
+            "cwd": "${workspaceFolder}/SerialService",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",
             "stopAtEntry": false

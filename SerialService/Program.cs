@@ -26,6 +26,7 @@ namespace SerialService
             using IModel serialServiceChannel = serialServiceConnection.CreateModel();
 
             SerialPortModel serialPortModel = new SerialPortModel(null, null);
+            serialPortModel.OpenPort(5, 1200);
 
             #region Events
             // Triggered when data is sent
@@ -119,6 +120,7 @@ namespace SerialService
             {
                 ReadOnlyMemory<byte> body = ea.Body;
                 string message = Encoding.UTF8.GetString(body.ToArray());
+                message = message.ToLower().Replace("server processed ", "");
 
                 if (message.StartsWith("serial-"))
                 {
@@ -130,7 +132,7 @@ namespace SerialService
 
                     switch (commands[1])
                     {
-                        case "open": // Open the serial port
+                        case "open": // Open the serial port                          
                             parameters = message.Split("###")[1].Replace(" ", string.Empty).Trim();
                             string[] arguments = parameters.Split(',');
                             byte comPort = 0;
@@ -144,52 +146,52 @@ namespace SerialService
                                 string[] components = arg.Split(':');
                                 switch(components[0])
                                 {
-                                    case "comPort":
+                                    case "comport":
                                         comPort = byte.Parse(components[1]);
                                         break;
-                                    case "baudRate":
+                                    case "baudrate":
                                         baudRate = int.Parse(components[1]);
                                         break;
                                     case "parity":
                                         string parityOption = components[1];
-                                        switch(parityOption)
+                                        switch(parityOption.ToLower())
                                         {
-                                            case "Even":
+                                            case "even":
                                                 parity = Parity.Even;
                                                 break;
-                                            case "Mark":
+                                            case "mark":
                                                 parity = Parity.Mark;
                                                 break;
-                                            case "None":
+                                            case "none":
                                                 parity = Parity.None;
                                                 break;
-                                            case "Odd":
+                                            case "odd":
                                                 parity = Parity.Odd;
                                                 break;
-                                            case "Space":
+                                            case "space":
                                                 parity = Parity.Space;
                                                 break;
                                             default:
                                                 break;
                                         }
                                         break;
-                                    case "dataBits":
+                                    case "databits":
                                         dataBits = int.Parse(components[1]);
                                         break;
-                                    case "stopBits":
+                                    case "stopbits":
                                         string stopBitsOption = components[1];
                                         switch (stopBitsOption)
                                         {
-                                            case "None":
+                                            case "none":
                                                 stopBits = StopBits.None;
                                                 break;
-                                            case "One":
+                                            case "one":
                                                 stopBits = StopBits.One;
                                                 break;
-                                            case "OnePointFive":
+                                            case "onepointfive":
                                                 stopBits = StopBits.OnePointFive;
                                                 break;
-                                            case "Two":
+                                            case "two":
                                                 stopBits = StopBits.Two;
                                                 break;
                                             default:
@@ -204,11 +206,13 @@ namespace SerialService
                             if (!serialPortModel.IsOpen)
                                 serialPortModel.OpenPort(comPort: comPort, baudRate: baudRate, 
                                     parity: parity, dataBits: dataBits, stopBits: stopBits);
+                            System.Console.WriteLine(message);
                             break;
 
                         case "close": // Close the serial port
                             if (serialPortModel.IsOpen)
                                 serialPortModel.ClosePort();
+                            System.Console.WriteLine(message);
                             break;
 
                         case "stx": // Set the start characters of the frame
@@ -219,6 +223,7 @@ namespace SerialService
                                 return byte.Parse(element, System.Globalization.NumberStyles.HexNumber);
                             });
                             serialPortModel.STX = stxbytes;
+                            System.Console.WriteLine(message);
                             break;
                                                 
                         case "etx": // Set the end characters of the frame
@@ -229,6 +234,7 @@ namespace SerialService
                                 return byte.Parse(element, System.Globalization.NumberStyles.HexNumber);
                             });
                             serialPortModel.ETX = etxBytes;
+                            System.Console.WriteLine(message);
                             break;
                             
                         case "message": // A message to be sent
@@ -239,6 +245,7 @@ namespace SerialService
                                 return byte.Parse(element, System.Globalization.NumberStyles.HexNumber);
                             });
                             serialPortModel.WriteSerialData(messageBytes);
+                            System.Console.WriteLine(message);
                             break;
 
                         default:
@@ -253,7 +260,7 @@ namespace SerialService
                                  consumer: serialServiceConsumer);
             #endregion
 
-            while(true);
+            while (true) ;
         }
     }
 }

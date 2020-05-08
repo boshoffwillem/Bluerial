@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BluerialApi.Models;
+using BluerialApi.Services;
+using RabbitMQ.Client.Events;
 
 namespace BluerialApi.Controllers
 {
@@ -13,13 +15,31 @@ namespace BluerialApi.Controllers
     [Route("api/[controller]")]
     public class CommandsController : ControllerBase
     {
-        private readonly CommandContext _context;
+        #region Private Members
+        /// <summary>
+        /// This will be the RabbitMQ channel to produce messages
+        /// to the serial-service-consumer queue
+        /// </summary>
+        private readonly IMessageService _serialServiceConsumer;
 
+        /// <summary>
+        /// This will be the RabbitMQ channel to produce messages
+        /// to the serial-service-producer queue
+        /// </summary>
+        private readonly IMessageService _serialServiceProducer;
+
+        private readonly CommandContext _context;
+        #endregion
+    
         public CommandsController(CommandContext context)
         {
             _context = context;
+            _serialServiceConsumer = new MessageService("serial-service-consumer", false);
+            _serialServiceProducer = new MessageService("serial-service-producer", true);
+            _serialServiceProducer.MessageReceived += MessageReceived;
         }
 
+        #region REST apis
         // GET: api/Commands
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Command>>> GetCommandsList()
@@ -82,6 +102,14 @@ namespace BluerialApi.Controllers
             _context.CommandsList.Add(command);
             await _context.SaveChangesAsync();
 
+            if (command.Name.StartsWith("serial-"))
+            {
+                if (_serialServiceConsumer != null)
+                {
+                    _serialServiceConsumer.Enqueue(command.CommandToSend());
+                }
+            }
+
             //return CreatedAtAction("GetCommand", new { id = command.Id }, command);
             return CreatedAtAction(nameof(GetCommand), new { id = command.Id }, command);
         }
@@ -101,10 +129,24 @@ namespace BluerialApi.Controllers
 
             return command;
         }
+        #endregion
 
+        #region Helper Functions
         private bool CommandExists(long id)
         {
             return _context.CommandsList.Any(e => e.Id == id);
         }
+
+        /// <summary>
+        /// Fired when a message is received on a RabbitMQ queue
+        /// that is being listened to
+        /// </summary>
+        /// <param name="sender">The sending queue</param>
+        /// <param name="args">Data of the queue</param>
+        private void MessageReceived(object sender, BasicDeliverEventArgs args)
+        {
+            System.Console.WriteLine($"Received: {args.Body}");
+        }
+        #endregion
     }
 }
