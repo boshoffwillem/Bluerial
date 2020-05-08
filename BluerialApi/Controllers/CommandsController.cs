@@ -28,6 +28,18 @@ namespace BluerialApi.Controllers
         /// </summary>
         private readonly IMessageService _serialServiceProducer;
 
+        /// <summary>
+        /// This will be the RabbitMQ channel to produce messages
+        /// to the ble-service-consumer queue
+        /// </summary>
+        private readonly IMessageService _bleServiceConsumer;
+
+        /// <summary>
+        /// This will be the RabbitMQ channel to produce messages
+        /// to the ble-service-producer queue
+        /// </summary>
+        private readonly IMessageService _bleServiceProducer;
+
         private readonly CommandContext _context;
         #endregion
     
@@ -37,6 +49,9 @@ namespace BluerialApi.Controllers
             _serialServiceConsumer = new MessageService("serial-service-consumer", false);
             _serialServiceProducer = new MessageService("serial-service-producer", true);
             _serialServiceProducer.MessageReceived += MessageReceived;
+            _bleServiceConsumer = new MessageService("ble-service-consumer", false);
+            _bleServiceProducer = new MessageService("ble-service-producer", true);
+            _bleServiceProducer.MessageReceived += MessageReceived;
         }
 
         #region REST apis
@@ -107,6 +122,13 @@ namespace BluerialApi.Controllers
                 if (_serialServiceConsumer != null)
                 {
                     _serialServiceConsumer.Enqueue(command.CommandToSend());
+                }
+            }
+            else if (command.Name.StartsWith("ble-"))
+            {
+                if (_bleServiceConsumer != null)
+                {
+                    _bleServiceConsumer.Enqueue(command.CommandToSend());
                 }
             }
 

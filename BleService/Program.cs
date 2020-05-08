@@ -23,7 +23,8 @@ namespace BleService
             var watcher = new BLEAdvertisementWatcher(new GattServiceIds());
 
             // Build RabbitMQ channel for BLE service
-            ConnectionFactory bleMessagesFactory = new ConnectionFactory() { HostName = "rabbitmq", Port = 5672 };
+            ConnectionFactory bleMessagesFactory = new ConnectionFactory() { HostName = "localhost" };
+            //ConnectionFactory bleMessagesFactory = new ConnectionFactory() { HostName = "rabbitmq", Port = 5672 };
             using IConnection bleMessagesConnection = bleMessagesFactory.CreateConnection();
             using IModel bleMessagesChannel = bleMessagesConnection.CreateModel();
 
@@ -52,6 +53,7 @@ namespace BleService
             {
                 ReadOnlyMemory<byte> body = ea.Body;
                 string message = Encoding.UTF8.GetString(body.ToArray());
+                message = message.ToLower().Replace("server processed ", "");
 
                 if (message.StartsWith("ble-"))
                 {
@@ -62,10 +64,12 @@ namespace BleService
                         case "start": // Start listening
                             if (!watcher.Listening)
                                 watcher.StartListening();
+                            Console.WriteLine(message);
                             break;
                         case "stop": // Stop listening
                             if (watcher.Listening)
                                 watcher.StopListening();
+                            Console.WriteLine(message);
                             break;
                         case "devices": // Get discovered devices
                             SendDevicesMessage(bleMessagesChannel, watcher.DiscoveredDevices);                            
@@ -97,9 +101,9 @@ namespace BleService
 
             #region Events
             watcher.StartedListening += () =>
-                {
-                    StartScanning(bleMessagesChannel);
-                };
+            {
+                StartScanning(bleMessagesChannel);
+            };
 
             watcher.StoppedListening += () =>
             {
@@ -192,27 +196,6 @@ namespace BleService
         }
 
         /// <summary>
-        /// The function post data back to the main Web Api
-        /// </summary>
-        /// <param name="postData">Data to post to Web Api</param>
-        public static async Task PostMessage(string postData)
-        {
-            var json = JsonConvert.SerializeObject(postData);
-            var content = new StringContent(json, UnicodeEncoding.UTF8, "application/json");
-
-            using (var httpClientHandler = new HttpClientHandler())
-            {
-                httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
-                using (var client = new HttpClient(httpClientHandler))
-                {
-                    var result = await client.PostAsync("https://localhost:5001/commands", content);
-                    string resultContent = await result.Content.ReadAsStringAsync();
-                    Console.WriteLine("Server returned: " + resultContent);
-                }
-            }
-        }
-
-        /// <summary>
         /// Send message that scanning has started
         /// </summary>
         /// <param name="bleMessagesChannel">RabbitMQ channel to use</param>
@@ -228,8 +211,6 @@ namespace BleService
                                  routingKey: "ble-service-producer",
                                  basicProperties: null,
                                  body: body);
-            
-            PostMessage(message).Wait();
         }
 
         /// <summary>
@@ -248,8 +229,6 @@ namespace BleService
                                  routingKey: "ble-service-producer",
                                  basicProperties: null,
                                  body: body);
-
-            PostMessage(message).Wait();
         }
 
         /// <summary>
@@ -274,8 +253,6 @@ namespace BleService
                                  routingKey: "ble-service-producer",
                                  basicProperties: null,
                                  body: body);
-
-            PostMessage(message).Wait();
         }
 
         /// <summary>
@@ -294,9 +271,7 @@ namespace BleService
             bleMessagesChannel.BasicPublish(exchange: "",
                                  routingKey: "ble-service-producer",
                                  basicProperties: null,
-                                 body: body); 
-
-            PostMessage(message).Wait();         
+                                 body: body);          
         }
 
         /// <summary>
@@ -321,8 +296,6 @@ namespace BleService
                                  routingKey: "ble-service-producer",
                                  basicProperties: null,
                                  body: body);
-
-            PostMessage(message).Wait();
         }
     }
 }
