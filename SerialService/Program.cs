@@ -3,6 +3,11 @@ using RabbitMQ.Client.Events;
 using System;
 using System.IO.Ports;
 using System.Text;
+using System.Threading;
+using System.Net.Http;
+using System.Threading.Tasks;
+using System.Net.Http.Headers;
+using Newtonsoft.Json;
 
 namespace SerialService
 {
@@ -10,10 +15,13 @@ namespace SerialService
     {
         static void Main()
         {
+            System.Console.WriteLine("Starting Serial service");
+            //Thread.Sleep(20000); // Wait 10 seconds for RabbitMQ to startup
             Console.WriteLine("Serial service started");
 
             // Create RabbitMQ channel for serial service
             ConnectionFactory serialServiceFactory = new ConnectionFactory() { HostName = "localhost" };
+            //ConnectionFactory serialServiceFactory = new ConnectionFactory() { HostName = "rabbitmq", Port = 5672 };
             using IConnection serialServiceConnection = serialServiceFactory.CreateConnection();
             using IModel serialServiceChannel = serialServiceConnection.CreateModel();
 
@@ -28,7 +36,7 @@ namespace SerialService
 
                 // Produce message
                 serialServiceChannel.BasicPublish(exchange: "",
-                                     routingKey: "ble-service-producer",
+                                     routingKey: "serial-service-producer",
                                      basicProperties: null,
                                      body: body);
             };
@@ -41,7 +49,7 @@ namespace SerialService
 
                 // Produce message
                 serialServiceChannel.BasicPublish(exchange: "",
-                                     routingKey: "ble-service-producer",
+                                     routingKey: "serial-service-producer",
                                      basicProperties: null,
                                      body: body);
             };
@@ -54,7 +62,7 @@ namespace SerialService
 
                 // Produce message
                 serialServiceChannel.BasicPublish(exchange: "",
-                                     routingKey: "ble-service-producer",
+                                     routingKey: "serial-service-producer",
                                      basicProperties: null,
                                      body: body);
             };
@@ -67,7 +75,7 @@ namespace SerialService
 
                 // Produce message
                 serialServiceChannel.BasicPublish(exchange: "",
-                                     routingKey: "ble-service-producer",
+                                     routingKey: "serial-service-producer",
                                      basicProperties: null,
                                      body: body);
             };
@@ -80,7 +88,7 @@ namespace SerialService
 
                 // Produce message
                 serialServiceChannel.BasicPublish(exchange: "",
-                                     routingKey: "ble-service-producer",
+                                     routingKey: "serial-service-producer",
                                      basicProperties: null,
                                      body: body);
             };
@@ -245,8 +253,7 @@ namespace SerialService
                                  consumer: serialServiceConsumer);
             #endregion
 
-            Console.WriteLine("Press [enter] to exit.");
-            Console.ReadLine();
+            while(true);
         }
     }
 }

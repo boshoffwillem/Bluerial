@@ -3,23 +3,27 @@ version: '3.4'
 services:
   ble_service:
     image: ble_service:latest
+    depends_on:
+      - "rabbitmq"
     build:
-      context: ./ble_service
+      context: ./BleService
       dockerfile: Dockerfile
 
   serial_service:
     image: serial_service:latest
+    depends_on:
+      - "rabbitmq"
     build:
-      context: ./serial_service
+      context: ./SerialService
       dockerfile: Dockerfile
 
   bluerial:
-    image: bluerial:latest
+    image: bluerial_api:latest
     depends_on:
       - "ble_service"
       - "serial_service"
     build:
-      context: ./bluerial
+      context: ./BluerialApi
       dockerfile: Dockerfile
 
   rabbitmq: # login guest:guest

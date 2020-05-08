@@ -2,13 +2,16 @@
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
+using System.Threading;
 
 namespace Bluerial
 {
     class Program
     {
         static void Main()
-        {
+        {        
+            System.Console.WriteLine("Starting Main service");
+            Thread.Sleep(20000); // Wait 10 seconds for RabbitMQ to startup   
             Console.WriteLine("Main service started");
 
             #region RabbitMQ Setup
@@ -154,8 +157,8 @@ namespace Bluerial
 
             while (true)
             {
-                byte[] body;
                 string command = Console.ReadLine();
+                byte[] body;
 
                 switch (command)
                 {
