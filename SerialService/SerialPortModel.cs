@@ -32,12 +32,12 @@ namespace SerialService
         /// <summary>
         /// Fired when a data frame is sent
         /// </summary>
-        public event Action DataSent = () => { };
+        public event Action<byte[]> DataSent = (data) => { };
 
         /// <summary>
         /// Fired when a data frame is received
         /// </summary>
-        public event Action DataReceived = () => { };
+        public event Action<byte[]> DataReceived = (data) => { };
 
         /// <summary>
         /// Fired when port is open
@@ -99,8 +99,12 @@ namespace SerialService
             {
                 // Open serial port
                 mSerialPort.Open();
+
                 IsOpen = true;
+
+                // Notify listeners
                 OpenedPort();
+
                 return true;
             }
             catch (UnauthorizedAccessException)
@@ -122,8 +126,13 @@ namespace SerialService
         /// <param name="e">The accompanying arguments</param>
         private void SerialDataReceived(object sender, SerialDataReceivedEventArgs e)
         {
-            // TODO: implement function
-            DataReceived();
+            // Get data
+            int numBytes = ((SerialPort)sender).BytesToRead;
+            byte[] data = new byte[numBytes];
+            int result = ((SerialPort)sender).Read(data, 0, numBytes);
+
+            // Notify listeners
+            DataReceived(data);
         }
 
         /// <summary>
@@ -159,6 +168,9 @@ namespace SerialService
 
                 // If everything executed...
                 result = true;
+
+                // Notify listeners
+                DataSent(data);
             }
 
             return result;
@@ -175,8 +187,12 @@ namespace SerialService
                 try
                 {
                     mSerialPort.Close();
+                    
                     IsOpen = false;
+
+                    // Notify listeners
                     ClosedPort();
+                    
                     return true;
                 }
                 catch (System.IO.IOException)

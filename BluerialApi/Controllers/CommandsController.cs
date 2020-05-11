@@ -54,7 +54,7 @@ namespace BluerialApi.Controllers
             _bleServiceProducer.MessageReceived += MessageReceived;
         }
 
-        #region REST apis
+        #region REST APIs
         // GET: api/Commands
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Command>>> GetCommandsList()

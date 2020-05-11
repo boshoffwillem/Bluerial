@@ -11,17 +11,19 @@ namespace Bluerial
         static void Main()
         {        
             System.Console.WriteLine("Starting Main service");
-            Thread.Sleep(20000); // Wait 10 seconds for RabbitMQ to startup   
+            //Thread.Sleep(20000); // Wait 10 seconds for RabbitMQ to startup   
             Console.WriteLine("Main service started");
 
             #region RabbitMQ Setup
             // Create RabbitMQ channel for BLE service
-            ConnectionFactory bleMessagesFactory = new ConnectionFactory() { HostName = "rabbitmq", Port = 5672 };
+            ConnectionFactory bleMessagesFactory = new ConnectionFactory() { HostName = "localhost" };
+            //ConnectionFactory bleMessagesFactory = new ConnectionFactory() { HostName = "rabbitmq", Port = 5672 };
             using IConnection bleMessagesConnection = bleMessagesFactory.CreateConnection();
             using IModel bleMessagesChannel = bleMessagesConnection.CreateModel();
             
             // Create RabbitMQ channel for Serial service
-            ConnectionFactory serialMessagesFactory = new ConnectionFactory() { HostName = "rabbitmq", Port = 5672 };
+            ConnectionFactory serialMessagesFactory = new ConnectionFactory() { HostName = "localhost" };
+            ///ConnectionFactory serialMessagesFactory = new ConnectionFactory() { HostName = "rabbitmq", Port = 5672 };
             using IConnection serialMessagesConnection = bleMessagesFactory.CreateConnection();
             using IModel serialMessagesChannel = bleMessagesConnection.CreateModel();
             #endregion

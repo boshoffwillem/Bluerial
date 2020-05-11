@@ -8,6 +8,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Net.Http.Headers;
 using Newtonsoft.Json;
+using System.Linq;
 
 namespace SerialService
 {
@@ -26,13 +27,12 @@ namespace SerialService
             using IModel serialServiceChannel = serialServiceConnection.CreateModel();
 
             SerialPortModel serialPortModel = new SerialPortModel(null, null);
-            serialPortModel.OpenPort(5, 1200);
 
             #region Events
             // Triggered when data is sent
-            serialPortModel.DataSent += () =>
+            serialPortModel.DataSent += (data) =>
             {
-                string message = "serial-data-sent-###xx";
+                string message = "serial-data-sent-###" + string.Join(",", data.Select(p => p.ToString("X")));
                 byte[] body = Encoding.UTF8.GetBytes(message);
 
                 // Produce message
@@ -43,9 +43,11 @@ namespace SerialService
             };
 
             // Triggered when data is received
-            serialPortModel.DataReceived += () =>
+            serialPortModel.DataReceived += (data) =>
             {
-                string message = "serial-data-received-###xx";
+                
+                string message = "serial-data-received-###" + string.Join(",", data.Select(p => p.ToString("X")));
+                //string message = "serial-data-received-###" + string.Join(",", data.Select(p => p.ToString()).ToArray());
                 byte[] body = Encoding.UTF8.GetBytes(message);
 
                 // Produce message

@@ -16,7 +16,7 @@ namespace BleService
         static void Main()
         {
             System.Console.WriteLine("Starting BLE service");
-            Thread.Sleep(20000); // Wait 10 seconds for RabbitMQ to startup
+            //Thread.Sleep(20000); // Wait 10 seconds for RabbitMQ to startup
             Console.WriteLine("BLE service started");
 
             List<string> deviceFilters = new List<string>();
